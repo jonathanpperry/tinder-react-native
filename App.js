@@ -1,9 +1,9 @@
-import { NavigationContainer } from "@react-navigation/native";
 import React from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
-import tw from "tailwind-rn";
-import { AuthProvider } from "./hooks/useAuth";
 import StackNavigator from "./StackNavigator";
+import { LogBox } from "react-native";
+LogBox.ignoreAllLogs();
+import { NavigationContainer } from "@react-navigation/native";
+import { AuthProvider } from "./hooks/useAuth";
 
 export default function App() {
   return (

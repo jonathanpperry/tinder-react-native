@@ -1,5 +1,12 @@
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import * as Google from "expo-google-app-auth";
+import {
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithCredential,
+  signOut,
+} from "firebase/auth";
+import { auth } from "../firebase";
 
 const AuthContext = createContext({});
 
@@ -13,17 +20,59 @@ const config = {
 };
 
 export const AuthProvider = ({ children }) => {
+  const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(
+    () =>
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          // Logged in
+          setUser(user);
+        } else {
+          setUser(null);
+        }
+
+        setLoadingInitial(false);
+      }),
+    []
+  );
+
+  const logout = () => {
+    setLoading(true);
+
+    signOut(auth)
+      .catch((error) => setError(error))
+      .finally(() => setLoading(false));
+  };
+
   const signInWithGoogle = async () => {
-    Google.logInAsync(config).then(async (loginResult) => {
-      if (loginResult.type === "success") {
-        // login...
-      }
-    });
+    setLoading(true);
+    await Google.logInAsync(config)
+      .then(async (loginResult) => {
+        if (loginResult.type === "success") {
+          // Login
+          const { idToken, accessToken } = loginResult;
+          const credential = GoogleAuthProvider.credential(
+            idToken,
+            accessToken
+          );
+          await signInWithCredential(auth, credential);
+        }
+
+        await Promise.reject();
+      })
+      .catch((error) => setError(error))
+      .finally(() => setLoading(false));
   };
 
   return (
-    <AuthContext.Provider value={{ user: null, signInWithGoogle }}>
-      {children}
+    <AuthContext.Provider
+      value={{ user, loading, error, signInWithGoogle, logout }}
+    >
+      {!loadingInitial && children}
     </AuthContext.Provider>
   );
 };
