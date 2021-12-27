@@ -1,6 +1,13 @@
 import { useNavigation } from "@react-navigation/core";
-import React from "react";
-import { View, SafeAreaView, TouchableOpacity, Image } from "react-native";
+import React, { useRef } from "react";
+import {
+  Image,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import useAuth from "../hooks/useAuth";
 import tw from "tailwind-rn";
 import { AntDesign, Entypo, Ionicons } from "@expo/vector-icons";
@@ -10,7 +17,7 @@ const DUMMY_DATA = [
   {
     firstName: "Elon",
     lastName: "Musk",
-    occupation: "Software Developer",
+    job: "Software Developer",
     photoURL:
       "https://www.biography.com/.image/ar_1:1%2Cc_fill%2Ccs_srgb%2Cg_face%2Cq_auto:good%2Cw_300/MTc5OTk2ODUyMTMxNzM0ODcy/gettyimages-1229892983-square.jpg",
     age: 40,
@@ -19,7 +26,7 @@ const DUMMY_DATA = [
   {
     firstName: "Elon",
     lastName: "Musk",
-    occupation: "Software Developer",
+    job: "Software Developer",
     photoURL:
       "https://www.biography.com/.image/ar_1:1%2Cc_fill%2Ccs_srgb%2Cg_face%2Cq_auto:good%2Cw_300/MTc5OTk2ODUyMTMxNzM0ODcy/gettyimages-1229892983-square.jpg",
     age: 40,
@@ -28,7 +35,7 @@ const DUMMY_DATA = [
   {
     firstName: "Elon",
     lastName: "Musk",
-    occupation: "Software Developer",
+    job: "Software Developer",
     photoURL:
       "https://www.biography.com/.image/ar_1:1%2Cc_fill%2Ccs_srgb%2Cg_face%2Cq_auto:good%2Cw_300/MTc5OTk2ODUyMTMxNzM0ODcy/gettyimages-1229892983-square.jpg",
     age: 40,
@@ -39,6 +46,7 @@ const DUMMY_DATA = [
 const HomeScreen = () => {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
+  const swipeRef = useRef(null)
 
   return (
     <SafeAreaView style={tw("flex-1")}>
@@ -67,8 +75,39 @@ const HomeScreen = () => {
       {/* Cards */}
       <View style={tw("flex-1 -mt-6")}>
         <Swiper
+          ref={swipeRef}
           containerStyle={{ backgroundColor: "transparent" }}
           cards={DUMMY_DATA}
+          stackSize={5}
+          cardIndex={0}
+          animateCardOpacity
+          verticalSwipe={false}
+          onSwipedLeft={() => {
+            console.log("Swipe PASS");
+          }}
+          onSwipedRight={() => {
+            console.log("Swipe MATCH");
+          }}
+          backgroundColor={"#4FD0E9"}
+          overlayLabels={{
+            left: {
+              title: "NOPE",
+              style: {
+                label: {
+                  textAlign: "right",
+                  color: "red",
+                },
+              },
+            },
+            right: {
+              title: "MATCH",
+              style: {
+                label: {
+                  color: "#4DED30",
+                },
+              },
+            },
+          }}
           renderCard={(card) => (
             <View
               key={card.id}
@@ -78,12 +117,53 @@ const HomeScreen = () => {
                 style={tw("absolute top-0 h-full w-full rounded-xl")}
                 source={{ uri: card.photoURL }}
               />
+
+              <View
+                style={[
+                  tw(
+                    "absolute bottom-0 bg-white w-full flex-row justify-between items-center h-20 px-6 py-2 rounded-b-xl"
+                  ),
+                  styles.cardShadow,
+                ]}
+              >
+                <View>
+                  <Text style={tw("text-xl font-bold")}>
+                    {card.firstName} {card.lastName}
+                  </Text>
+                  <Text>{card.job}</Text>
+                </View>
+                <Text style={tw("text-2xl font-bold")}>{card.age}</Text>
+              </View>
             </View>
           )}
         />
+      </View>
+
+      {/* Bottom buttons */}
+
+      <View style={tw("flex flex-row justify-evenly")}>
+        <TouchableOpacity onPress={() => swipeRef.current.swipeLeft()} style={tw("items-center justify-center rounded-full w-16 h-16 bg-red-200")}>
+          <Entypo name="cross" size={24} color="red" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => swipeRef.current.swipeRight()} style={tw("items-center justify-center rounded-full w-16 h-16 bg-green-200")}>
+          <AntDesign name="heart" size={24} color="green" />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
 export default HomeScreen;
+
+const styles = StyleSheet.create({
+  cardShadow: {
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
+  },
+});
