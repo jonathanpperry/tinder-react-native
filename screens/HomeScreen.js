@@ -12,7 +12,7 @@ import useAuth from "../hooks/useAuth";
 import tw from "tailwind-rn";
 import { AntDesign, Entypo, Ionicons } from "@expo/vector-icons";
 import Swiper from "react-native-deck-swiper";
-import { collection, doc, onSnapshot } from "firebase/firestore";
+import { collection, doc, getDocs, onSnapshot, query, setDoc, where } from "firebase/firestore";
 import { db } from "../firebase";
 
 const DUMMY_DATA = [
@@ -65,22 +65,51 @@ const HomeScreen = () => {
     let unsub
 
     const fetchCards = async () => {
-      unsub = onSnapshot(collection(db, 'users'), snapshot => {
-        setProfiles(
-          snapshot.docs.filter(doc => doc.id !== user.uid).map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-        )
-      })
+
+      const passes = await getDocs(collection(db, 'users', user.uid, 'passes')).then(
+        snapshot => snapshot.docs.map(doc => doc.id)
+      );
+
+      const swipes = await getDocs(collection(db, 'users', user.uid, 'swipes')).then(
+        snapshot => snapshot.docs.map(doc => doc.id)
+      );
+
+      const passedUserIds = passes.length > 0 ? passes : ['test']
+      const swipedUserIds = swipes.length > 0 ? swipes : ['test']
+
+      unsub = onSnapshot(query(collection(db, 'users'), where('id', 'not-in', [...passedUserIds, ...swipedUserIds])
+      ),
+        snapshot => {
+          setProfiles(
+            snapshot.docs
+              .filter(doc => doc.id !== user.uid)
+              .map(doc => ({
+                id: doc.id,
+                ...doc.data()
+              }))
+          )
+        })
     }
 
     fetchCards()
     return unsub
-  }, [])
+  }, [db])
 
-  // const swipeLeft = async () => {
-  // }
+  const swipeLeft = async (cardIndex) => {
+    if (!profiles[cardIndex]) return;
+
+    const userSwiped = profiles[cardIndex];
+
+    setDoc(doc(db, 'users', user.uid, 'passes', userSwiped.id), userSwiped)
+  }
+
+  const swipeRight = async (cardIndex) => {
+    if (!profiles[cardIndex]) return;
+
+    const userSwiped = profiles[cardIndex];
+
+    setDoc(doc(db, 'users', user.uid, 'swipes', userSwiped.id), userSwiped);
+  }
 
   return (
     <SafeAreaView style={tw("flex-1")}>
@@ -117,10 +146,10 @@ const HomeScreen = () => {
           animateCardOpacity
           verticalSwipe={false}
           onSwipedLeft={(cardIndex) => {
-            // swipeLeft(cardIndex)
+            swipeLeft(cardIndex)
           }}
           onSwipedRight={(cardIndex) => {
-            // swipeRight(cardIndex)
+            swipeRight(cardIndex)
           }}
           backgroundColor={"#4FD0E9"}
           overlayLabels={{
