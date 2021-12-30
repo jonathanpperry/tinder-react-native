@@ -12,8 +12,9 @@ import useAuth from "../hooks/useAuth";
 import tw from "tailwind-rn";
 import { AntDesign, Entypo, Ionicons } from "@expo/vector-icons";
 import Swiper from "react-native-deck-swiper";
-import { collection, doc, getDocs, onSnapshot, query, setDoc, where } from "firebase/firestore";
+import { collection, doc, getDocs, onSnapshot, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 import { db } from "../firebase";
+import generateId from "../lib/generateId";
 
 const DUMMY_DATA = [
   {
@@ -99,8 +100,37 @@ const HomeScreen = () => {
     if (!profiles[cardIndex]) return;
 
     const userSwiped = profiles[cardIndex];
+    const loggedInProfile = await (await getDoc(db, 'users', user.uid)).data()
 
-    setDoc(doc(db, 'users', user.uid, 'passes', userSwiped.id), userSwiped)
+    // Check if the user swiped on you
+    getDoc(doc(db, 'users', userSwiped.id, 'swipes', user.uid)).then(docSnapshot => {
+      if (docSnapshot.exists()) {
+        // User has matched with you before you matched with them
+        setDoc(doc(db, 'users', user.uid, 'passes', userSwiped.id),
+          userSwiped
+        );
+        // Create a match
+        setDoc(doc(db, 'matches', generateId(user.uid, userSwiped.id)), {
+          users: {
+            [user.uid]: loggedInProfile,
+            [userSwiped.id]: userSwiped
+          },
+          usersMatched: [user.uid, userSwiped.id],
+          timestamp: serverTimestamp()
+        });
+
+        navigation.navigate("Match", {
+          loggedInProfile,
+          userSwiped
+        })
+      } else {
+        // User has swiped as first interaction b/w the two or didnt get swiped on
+        setDoc(doc(db, 'users', user.uid, 'swipes', userSwiped.id),
+          userSwiped
+        );
+      }
+    })
+
   }
 
   const swipeRight = async (cardIndex) => {
