@@ -12,7 +12,7 @@ import useAuth from "../hooks/useAuth";
 import tw from "tailwind-rn";
 import { AntDesign, Entypo, Ionicons } from "@expo/vector-icons";
 import Swiper from "react-native-deck-swiper";
-import { collection, doc, getDocs, onSnapshot, query, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 import { db } from "../firebase";
 import generateId from "../lib/generateId";
 
@@ -78,8 +78,11 @@ const HomeScreen = () => {
       const passedUserIds = passes.length > 0 ? passes : ['test']
       const swipedUserIds = swipes.length > 0 ? swipes : ['test']
 
-      unsub = onSnapshot(query(collection(db, 'users'), where('id', 'not-in', [...passedUserIds, ...swipedUserIds])
-      ),
+      unsub = onSnapshot(
+        query(
+          collection(db, 'users'),
+          where('id', 'not-in', [...passedUserIds, ...swipedUserIds])
+        ),
         snapshot => {
           setProfiles(
             snapshot.docs
@@ -100,15 +103,29 @@ const HomeScreen = () => {
     if (!profiles[cardIndex]) return;
 
     const userSwiped = profiles[cardIndex];
-    const loggedInProfile = await (await getDoc(db, 'users', user.uid)).data()
+
+    setDoc(doc(db, 'users', user.uid, 'passes', userSwiped.id), userSwiped);
+
+  }
+
+  const swipeRight = async (cardIndex) => {
+    if (!profiles[cardIndex]) return;
+
+    const userSwiped = profiles[cardIndex];
+
+    const loggedInProfile = await (
+      await getDoc(doc(db, 'users', user.uid))
+    ).data()
 
     // Check if the user swiped on you
     getDoc(doc(db, 'users', userSwiped.id, 'swipes', user.uid)).then(docSnapshot => {
       if (docSnapshot.exists()) {
         // User has matched with you before you matched with them
-        setDoc(doc(db, 'users', user.uid, 'passes', userSwiped.id),
+        // Record the swipe
+        setDoc(doc(db, 'users', user.uid, 'swipes', userSwiped.id),
           userSwiped
         );
+
         // Create a match
         setDoc(doc(db, 'matches', generateId(user.uid, userSwiped.id)), {
           users: {
@@ -125,20 +142,12 @@ const HomeScreen = () => {
         })
       } else {
         // User has swiped as first interaction b/w the two or didnt get swiped on
-        setDoc(doc(db, 'users', user.uid, 'swipes', userSwiped.id),
+        setDoc(
+          doc(db, 'users', user.uid, 'swipes', userSwiped.id),
           userSwiped
         );
       }
     })
-
-  }
-
-  const swipeRight = async (cardIndex) => {
-    if (!profiles[cardIndex]) return;
-
-    const userSwiped = profiles[cardIndex];
-
-    setDoc(doc(db, 'users', user.uid, 'swipes', userSwiped.id), userSwiped);
   }
 
   return (
@@ -247,7 +256,6 @@ const HomeScreen = () => {
       </View>
 
       {/* Bottom buttons */}
-
       <View style={tw("flex flex-row justify-evenly")}>
         <TouchableOpacity onPress={() => swipeRef.current.swipeLeft()} style={tw("items-center justify-center rounded-full w-16 h-16 bg-red-200")}>
           <Entypo name="cross" size={24} color="red" />
