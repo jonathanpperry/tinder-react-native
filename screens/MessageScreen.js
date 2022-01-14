@@ -21,6 +21,7 @@ import {
   collection,
   onSnapshot,
   orderBy,
+  query,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
@@ -96,7 +97,7 @@ const MessageScreen = () => {
           <TextInput
             style={tw("h-10 text-lg")}
             placeholder="Send Message..."
-            onChangeInput={setInput}
+            onChangeText={setInput}
             onSubmitEditing={sendMessage}
             value={input}
           />
